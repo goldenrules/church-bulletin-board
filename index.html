@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교회 주보 아카이브 | 전국 교회 주보 모음</title>
+  <meta name="description" content="전국 주요 교회의 주보를 한눈에 확인하고 검색하세요. 교단별, 지역별 필터 기능을 제공합니다.">
+  <meta name="keywords" content="교회주보, 주보아카이브, 예배순서, 주보찾기, 기독교">
+  
+  <style>
+    body{ font-family: 'Malgun Gothic', sans-serif; background:#f4f6f8; text-align:center; padding:40px; }
+    .card{ background:white; padding:30px; max-width:600px; margin:auto; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    h1{ margin-bottom:20px; color: #333; }
+    select, button, textarea{ width:80%; padding:12px; margin:8px; font-size:16px; border-radius:8px; border:1px solid #ccc; }
+    button{ background:#2c7be5; color:white; border:none; cursor:pointer; font-weight: bold; }
+    button:hover{ background:#1a5fd0; }
+    #form{ display:none; margin-top:20px; }
+    .desc{ font-size:13px; color:#666; }
+    hr{ margin:30px 0; border: 0; border-top: 1px solid #eee; }
+    .filter-row{ display:flex; justify-content:space-around; margin-bottom:15px; }
+    .filter-row select{ width:45%; }
+    #loading { color: #2c7be5; font-weight: bold; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>교회 주보 아카이브</h1>
+
+  <div id="loading">주보 목록을 불러오는 중...</div>
+
+  <div class="filter-row">
+    <select id="denomFilter" onchange="filterChurches()">
+      <option value="">교단 전체</option>
+    </select>
+    <select id="regionFilter" onchange="filterChurches()">
+      <option value="">지역 전체</option>
+    </select>
+  </div>
+
+  <select id="church"></select>
+  <button onclick="go()">주보 보러가기</button>
+
+  <hr>
+
+  <button onclick="openForm()">피드백 제출</button>
+  <div class="desc">(페이지가 연결되지 않거나 주보를 추가하기 원하시면 말씀해주세요.)</div>
+
+  <div id="form">
+    <h3>피드백 제출</h3>
+    <textarea id="feedback" placeholder="여기에 작성해 주세요"></textarea><br>
+    <button onclick="submitForm()">제출</button>
+  </div>
+</div>
+
+<script>
+// 1. 본인의 구글 앱 스크립트 배포 URL을 여기에 넣으세요!
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxxMIKwSUDyHbo-x-Mjmb4DK7LTnPAqlQBaU_-K8phn3Qynlf9jWQf_iB9agX3-gfdtuA/exec"; 
+
+let churchData = [];
+
+// 2. 데이터 불러오기 (fetch 사용)
+async function loadChurches() {
+  try {
+    const response = await fetch(GAS_URL);
+    if (!response.ok) throw new Error('네트워크 응답에 문제가 있습니다.');
+    
+    churchData = await response.json();
+    
+    document.getElementById("loading").style.display = "none";
+    populateFilters(churchData);
+    renderList(churchData);
+  } catch (error) {
+    console.error("데이터 로드 실패:", error);
+    document.getElementById("loading").innerText = "데이터를 불러오지 못했습니다.";
+  }
+}
+
+function renderList(data) {
+  const select = document.getElementById("church");
+  select.innerHTML = '<option value="">교회 선택</option>';
+  data.forEach(row => {
+    if(row[0] && row[3]) {
+      select.innerHTML += `<option value="${row[3]}">${row[0]} (${row[1]} / ${row[2]})</option>`;
+    }
+  });
+}
+
+function populateFilters(data) {
+  const denomSet = new Set();
+  const regionSet = new Set();
+  data.forEach(row => {
+    if(row[1]) denomSet.add(row[1]);
+    if(row[2]) regionSet.add(row[2]);
+  });
+  
+  const denomSelect = document.getElementById("denomFilter");
+  const regionSelect = document.getElementById("regionFilter");
+  
+  denomSet.forEach(d => {
+    const opt = document.createElement("option"); opt.value=d; opt.textContent=d;
+    denomSelect.appendChild(opt);
+  });
+  regionSet.forEach(r => {
+    const opt = document.createElement("option"); opt.value=r; opt.textContent=r;
+    regionSelect.appendChild(opt);
+  });
+}
+
+function filterChurches() {
+  const denom = document.getElementById("denomFilter").value;
+  const region = document.getElementById("regionFilter").value;
+  const filtered = churchData.filter(row => {
+    return (!denom || row[1] === denom) && (!region || row[2] === region);
+  });
+  renderList(filtered);
+}
+
+function go() {
+  const url = document.getElementById("church").value;
+  if(!url) { alert("교회를 선택하세요"); return; }
+  window.open(url);
+}
+
+function openForm() { document.getElementById("form").style.display="block"; }
+
+// 피드백 제출 (참고: API 연동이 추가로 필요하므로 현재는 경고창만 띄움)
+function submitForm() {
+  const message = document.getElementById("feedback").value;
+  if(!message) { alert("피드백 내용을 입력하세요"); return; }
+  alert("피드백이 접수되었습니다. (API 연결 필요)");
+  document.getElementById("feedback").value = "";
+}
+
+// 초기 로드 실행
+loadChurches();
+</script>
+
+</body>
+</html>
